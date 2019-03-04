@@ -14,7 +14,7 @@ link_directories(${LLVM_LIBRARY_DIRS})
 
 add_subdirectory(RuntimeLtlProject)
 
-if($ENV{USING_NIX})
+if($ENV{BUILDING_WITH_NIX})
   install(FILES ./build/RuntimeLtlProject/RuntimeLtlProject.so DESTINATION $ENV{out})
 endif()
 

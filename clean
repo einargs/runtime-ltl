@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Clean up the CMake build directory
+rm -r build

@@ -8,7 +8,7 @@ in stdenv.mkDerivation {
 
   src = ./.;
 
-  USING_NIX = true;
+  BUILDING_WITH_NIX = true;
 
   nativeBuildInputs = [
     cmake python3 ninja 

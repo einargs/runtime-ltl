@@ -9,5 +9,7 @@ in mkShell {
   buildInputs = [
     cmake ninja clang llvm
   ];
+  
+  USING_NIX_SHELL = true;
   clang7 = "${clang_7}/bin/clang";
 }

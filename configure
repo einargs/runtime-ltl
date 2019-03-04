@@ -6,7 +6,3 @@ cd build
 cmake -G Ninja ..
 cmake --build .
 cd ..
-
-
-# For holding the IR representation of pass runs.
-mkdir -p tmp
