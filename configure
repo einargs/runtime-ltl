@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# For holding CMake build configuration
+mkdir -p build
+cd build
+cmake -G Ninja ..
+cmake --build .
+cd ..
+
+
+# For holding the IR representation of pass runs.
+mkdir -p tmp
