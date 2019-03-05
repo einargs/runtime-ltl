@@ -12,9 +12,9 @@ add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
-add_subdirectory(RuntimeLtlProject)
+add_subdirectory(RuntimeLtlPass)
 
 if($ENV{BUILDING_WITH_NIX})
-  install(FILES ./build/RuntimeLtlProject/RuntimeLtlProject.so DESTINATION $ENV{out})
+  install(FILES ./build/RuntimeLtlPass/RuntimeLtlPass.so DESTINATION $ENV{out})
 endif()
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SO_NAME="RuntimeLtlProject.so"
+SO_NAME="RuntimeLtlPass.so"
 TARGET_FILE=$1
 BIN_OUT=$2
 IR_OUT=$3
@@ -29,7 +29,7 @@ if [ -z "$PASS_SO" ]; then
   # location of the shared object in the local result of a `nix-build`
   RESULT_SO="result/$SO_NAME"
   # location of the shared object as a result of a normal CMake build
-  BUILD_SO="build/RuntimeLtlProject/$SO_NAME"
+  BUILD_SO="build/RuntimeLtlPass/$SO_NAME"
 
   if [ -f $RESULT_SO ]; then
     # If there is a result folder with a shared object in it, use that;
@@ -45,7 +45,7 @@ if [ -z "$PASS_SO" ]; then
   fi
 fi
 
-echo "PASS_SO is :$PASS_SO:"
+echo "PASS_SO is $PASS_SO"
 
 # If `nix-shell` has been run with the local `shell.nix`, use the `$clang7`
 # variable to execute the code. Otherwise, locate the `clang` command in the
