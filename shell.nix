@@ -12,4 +12,5 @@ in mkShell {
   
   USING_NIX_SHELL = true;
   clang7 = "${clang_7}/bin/clang";
+  clangxx7 = "${clang_7}/bin/clang++";
 }

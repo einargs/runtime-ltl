@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-void log_enter() {
+__attribute__((annotate("ltl_entry_fn"))) void log_enter() {
   printf("Entering\n");
 }
 
-void log_exit() {
+__attribute__((annotate("ltl_exit_fn"))) void log_exit() {
   printf("Exiting\n");
 }
 

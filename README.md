@@ -17,7 +17,7 @@ __attribute__((annotate("ltl_verify"))) void annotate_this() {
 ## Requirements
 - CMake >= 3.11
 - ninja 1.8.2
-- LLVM 7 (`llvm-config` and `lli` should be in your `PATH`)
+- LLVM 7 (`llvm-config` should be in your `PATH`)
 - Clang 7
 
 ## Building
@@ -44,14 +44,23 @@ an example `c` file. It is designed to deal with both `nix` and non-`nix`
 environments. The script is commented, but rough, as I am not very familiar
 with bash scripting.
 
-The script will print to STDOUT the generated IR and then execute it using the
-`lli` interpreter.
+The script will compile the input file to IR and then print out the IR. It will
+also compile the file to a binary that it will then execute. I would prefer to
+use the `lli` interpreter, but unfortunately that requires manually setting
+up the linking to the standard library, which is a complex task better tackled
+later on in the project.
 
 Syntax:
 ```
-[PASS_SO=<plugin shared object>] ./run-pass.sh <source input> [<IR output file>]
+[PASS_SO=<plugin shared object>] [CLANG=<clang binary>]
+./run-pass.sh <source input>
+    [<binary output file>] [<IR output file>]
 ```
 
-If `PASS_SO` is an environment variable, it will use that as the shared object
-for dynamically linking the plugin. The first argument is the source file,
-and the second argument is an optional file to output the generated IR to.
+Environment variables can be defined that affect the behavior of the program.
+`PASS_SO` will provide a path for the shared object that should be loaded.
+`CLANG` will provide a path to a clang executable that should be used.
+
+The first argument is the source file, the
+second argument is an optional file to output the binary to, and the third
+argument is an optional file to output the generated IR to.

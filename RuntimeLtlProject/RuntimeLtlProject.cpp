@@ -29,15 +29,50 @@ struct RuntimeLtl : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
   RuntimeLtl() : FunctionPass(ID) {}
 
-  Function *LogEnterFn;
-  Function *LogExitFn;
+  Function *EntryFn;
+  Function *ExitFn;
+
+  // Move annotations from global metadata to attributes on the functions
+  // themselves.
+  // Source code adapted from: http://bholt.org/posts/llvm-quick-tricks.html
+  // retrieved March 4, 2019.
+  void loadAnnotations(Module &module) {
+    auto global_annos = module.getNamedGlobal("llvm.global.annotations");
+
+    if (global_annos) {
+      auto a = cast<ConstantArray>(global_annos->getOperand(0));
+      for (int i=0; i<a->getNumOperands(); i++) {
+        auto e = cast<ConstantStruct>(a->getOperand(i));
+
+        if (Function* fn = dyn_cast<Function>(e->getOperand(0)->getOperand(0))) {
+          auto anno = cast<ConstantDataArray>(cast<GlobalVariable>(e->getOperand(1)->getOperand(0))->getOperand(0))->getAsCString();
+
+          // Log function name
+          errs() << "annotated function ";
+          errs().write_escaped(fn->getName()) << " with attribute " << anno
+            << "\n";
+          // Add annotation
+          fn->addFnAttr(anno);
+
+          // Grab the entry and exit functions. This is just a temporary
+          // way of identifying what functions should be used.
+          if (anno == "ltl_entry_fn") {
+            errs() << "Found entry function\n";
+            EntryFn = fn;
+          } else if (anno == "ltl_exit_fn") {
+            errs() << "Found exit function\n";
+            ExitFn = fn;
+          }
+        }
+      }
+    }
+  }
 
   bool doInitialization(Module &module) {
-    LogEnterFn = module.getFunction("log_enter");
-    LogExitFn = module.getFunction("log_exit");
+    loadAnnotations(module);
 
-    if (!LogEnterFn || !LogExitFn) {
-      errs() << "Could not find log functions\n";
+    if (!EntryFn || !ExitFn) {
+      errs() << "Could not find verification functions\n";
     }
 
     return false;
@@ -45,10 +80,9 @@ struct RuntimeLtl : public FunctionPass {
 
   bool runOnFunction(Function &F) override {
     //TODO: figure out how to pass clang attributes through.
-    if (F.getName() != "annotate_this"
-        // This is the function we will insert calls to; thus we really
-        // can't make any calls to it.
-       ) {
+    if (!F.hasFnAttribute("ltl_verify")
+        || F.hasFnAttribute("ltl_entry_fn")
+        || F.hasFnAttribute("ltl_exit_fn")) {
       return false;
     }
 
@@ -57,13 +91,13 @@ struct RuntimeLtl : public FunctionPass {
 
     // Move to before the first instruction in the first basic block
     builder.SetInsertPoint(&F.front().front());
-    builder.CreateCall(LogEnterFn);
+    builder.CreateCall(EntryFn);
 
     // Move to after the last instruction in the last basic block
     builder.SetInsertPoint(&F.back().back());
-    builder.CreateCall(LogExitFn);
+    builder.CreateCall(ExitFn);
 
-    errs() << "Annotating function: ";
+    errs() << "Inserting calls in function";
     errs().write_escaped(F.getName()) << '\n';
 
     return true;

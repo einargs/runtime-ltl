@@ -2,15 +2,19 @@
 //#include <stdbool.h>
 #include <iostream>
 
-void log_enter() {
+#define LTL_ENTRY_FN __attribute__((annotate("ltl_entry_fn")))
+#define LTL_EXIT_FN __attribute__((annotate("ltl_exit_fn")))
+#define LTL_VERIFY __attribute__((annotate("ltl_verify")))
+
+LTL_ENTRY_FN void log_enter() {
   std::cout << "Entering" << std::endl;
 }
 
-void log_exit() {
+LTL_EXIT_FN void log_exit() {
   std::cout << "Exiting" << std::endl;
 }
 
-void annotate_this() {
+LTL_VERIFY void annotate_this() {
   if (true) {
     std::cout << "Hello world!" << std::endl;
   } else {
@@ -23,12 +27,15 @@ private:
   int val;
 public:
   Test(int val): val(val) {}
-  void method() {
+
+  LTL_VERIFY void method() {
     std::cout << "Hey " << val << std::endl;
   }
 };
 
 int main() {
+  annotate_this();
+
   Test test(1);
   test.method();
   return 0;
