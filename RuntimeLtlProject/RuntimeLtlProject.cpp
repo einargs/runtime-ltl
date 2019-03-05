@@ -114,4 +114,4 @@ static void registerRuntimeLtl(const PassManagerBuilder &,
 static RegisterStandardPasses
   RegisterMyPass(PassManagerBuilder::EP_EarlyAsPossible,
                  registerRuntimeLtl);
-//static RegisterPass<RuntimeLtl> X("runtimeltl", "Runtime LTL Pass");
+static RegisterPass<RuntimeLtl> X("runtimeltl", "Runtime LTL Pass");
