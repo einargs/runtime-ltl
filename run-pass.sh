@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-SO_NAME="RuntimeLtlPass.so"
+RUNTIME_SO_NAME="libRuntimeLtlLib.so"
+PASS_SO_NAME="RuntimeLtlPass.so"
 TARGET_FILE=$1
 BIN_OUT=$2
 IR_OUT=$3
@@ -26,26 +27,27 @@ fi
 # This allows you to specify a different location for the script to find
 # the plugin at.
 if [ -z "$PASS_SO" ]; then 
-  # location of the shared object in the local result of a `nix-build`
-  RESULT_SO="result/$SO_NAME"
-  # location of the shared object as a result of a normal CMake build
-  BUILD_SO="build/RuntimeLtlPass/$SO_NAME"
-
-  if [ -f $RESULT_SO ]; then
+  if [ -d "./result/" ]; then
     # If there is a result folder with a shared object in it, use that;
-    PASS_SO=$RESULT_SO
-  elif [ -f $BUILD_SO ]; then
+    PASS_SO="./result/$PASS_SO_NAME"
+    RUNTIME_SO="./result/$RUNTIME_SO_NAME"
+  elif [ -d "./build/" ]; then
     # Otherwise, check if a shared object exists as a result of a normal
     # CMake build.
-    PASS_SO=$BUILD_SO
-  else
-    # If a shared object cannot be located, exit with an error.
-    echo "Error: Could not find shared object."
-    exit 1
+    PASS_SO="./build/RuntimeLtlPass/$PASS_SO_NAME"
+    RUNTIME_SO="./build/RuntimeLtlLib/$RUNTIME_SO_NAME"
   fi
 fi
 
-echo "PASS_SO is $PASS_SO"
+if [[ !( -f $PASS_SO && -f $RUNTIME_SO ) ]]; then
+  # If a shared object cannot be located, exit with an error.
+  echo "Error: Could not find shared object."
+  exit 1
+else
+  # Log info about what shared objects are being used
+  echo "PASS_SO is $PASS_SO"
+  echo "RUNTIME_SO is $RUNTIME_SO"
+fi
 
 # If `nix-shell` has been run with the local `shell.nix`, use the `$clang7`
 # variable to execute the code. Otherwise, locate the `clang` command in the
@@ -83,7 +85,7 @@ fi
 echo "CLANG is $CLANG"
 
 # Common options for the 
-RUN_CLANG="$CLANG -Xclang -load -Xclang $PASS_SO -O0"
+RUN_CLANG="$CLANG -Xclang -load -Xclang $PASS_SO $RUNTIME_SO -O0"
 
 IR_TMP=$(mktemp)
 BIN_TMP=$(mktemp)

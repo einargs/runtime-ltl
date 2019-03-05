@@ -15,8 +15,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/BasicBlock.h"
-#include "llvm/Pass.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/Pass.h" #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 using namespace llvm;
@@ -31,6 +30,12 @@ struct RuntimeLtl : public FunctionPass {
 
   Function *EntryFn;
   Function *ExitFn;
+
+  void loadExternalFunctions(Module &module) {
+    LLVMContext &ctx = module.getContext();
+    EntryFn = dyn_cast<Function>(module.getOrInsertFunction("runtime_ltl_entry_fn", Type::getVoidTy(ctx)));
+    ExitFn = dyn_cast<Function>(module.getOrInsertFunction("runtime_ltl_exit_fn", Type::getVoidTy(ctx)));
+  }
 
   // Move annotations from global metadata to attributes on the functions
   // themselves.
@@ -53,16 +58,6 @@ struct RuntimeLtl : public FunctionPass {
             << "\n";
           // Add annotation
           fn->addFnAttr(anno);
-
-          // Grab the entry and exit functions. This is just a temporary
-          // way of identifying what functions should be used.
-          if (anno == "ltl_entry_fn") {
-            errs() << "Found entry function\n";
-            EntryFn = fn;
-          } else if (anno == "ltl_exit_fn") {
-            errs() << "Found exit function\n";
-            ExitFn = fn;
-          }
         }
       }
     }
@@ -70,6 +65,7 @@ struct RuntimeLtl : public FunctionPass {
 
   bool doInitialization(Module &module) {
     loadAnnotations(module);
+    loadExternalFunctions(module);
 
     if (!EntryFn || !ExitFn) {
       errs() << "Could not find verification functions\n";
@@ -80,9 +76,7 @@ struct RuntimeLtl : public FunctionPass {
 
   bool runOnFunction(Function &F) override {
     //TODO: figure out how to pass clang attributes through.
-    if (!F.hasFnAttribute("ltl_verify")
-        || F.hasFnAttribute("ltl_entry_fn")
-        || F.hasFnAttribute("ltl_exit_fn")) {
+    if (!F.hasFnAttribute("ltl_verify")) {
       return false;
     }
 
