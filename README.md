@@ -14,6 +14,9 @@ __attribute__((annotate("ltl_verify"))) void annotate_this() {
 }
 ```
 
+Calls are made to a separately loaded shared object containing the runtime
+library for the verification system.
+
 ## Requirements
 - CMake >= 3.11
 - ninja 1.8.2
@@ -39,10 +42,10 @@ During development it is recommended to use the process described in
 every change.
 
 ## Using `run-pass.sh`
-`run-pass.sh` is a script for quickly trying out the runtime ltl plugin on
-an example `c` file. It is designed to deal with both `nix` and non-`nix`
-environments. The script is commented, but rough, as I am not very familiar
-with bash scripting.
+`run-pass.sh` is a script for quickly testing the runtime ltl plugin on C and
+C++ files (example files can be found in the `tests` folder). It is designed to
+deal with both `nix` and non-`nix` environments. The script is commented, but
+rough, as I am not very familiar with bash scripting.
 
 The script will compile the input file to IR and then print out the IR. It will
 also compile the file to a binary that it will then execute. I would prefer to

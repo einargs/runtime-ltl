@@ -16,6 +16,8 @@ add_subdirectory(RuntimeLtlPass)
 add_subdirectory(RuntimeLtlLib)
 
 if($ENV{BUILDING_WITH_NIX})
+  # The current nix build will always use `build` as the build folder so while
+  # there is probably a better way to do this, it works.
   install(FILES ./build/RuntimeLtlPass/RuntimeLtlPass.so DESTINATION $ENV{out})
   install(FILES ./build/RuntimeLtlLib/RuntimeLtlLib.so DESTINATION $ENV{out})
 endif()
