@@ -1,5 +1,3 @@
-//#include <stdio.h>
-//#include <stdbool.h>
 #include <iostream>
 
 #define LTL_VERIFY __attribute__((annotate("ltl_verify")))

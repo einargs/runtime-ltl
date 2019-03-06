@@ -31,7 +31,7 @@ perform an initial build of the shared object; afterwards, to re-build upon
 changes to the source, run `cmake --build $PROJECT_ROOT/build`.
 
 ## Using Nix
-If you use [Nix](https://nixos.org/nix/) you can simply run `shell.nix` to
+If you use [Nix](https://nixos.org/nix/) you can simply run `nix-shell` to
 install the required dependencies. Further, you can build the shared object
 with `nix-build`. Make sure that the `build` directory does not exist, as it
 will be copied by `nix-build` and conflict with the new `build` directory the
