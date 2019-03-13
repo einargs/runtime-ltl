@@ -19,6 +19,7 @@ library for the verification system.
 
 ## Requirements
 - CMake >= 3.11
+- SPOT 2.7.1 (https://spot.lrde.epita.fr/install.html)
 - ninja 1.8.2
 - LLVM 7 (`llvm-config` should be in your `PATH`)
 - Clang 7
