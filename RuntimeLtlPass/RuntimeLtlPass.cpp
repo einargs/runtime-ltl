@@ -11,18 +11,51 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <string>
+#include <cxxabi.h>
+
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/BasicBlock.h"
-#include "llvm/Pass.h" #include "llvm/Support/raw_ostream.h"
+#include "llvm/Pass.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
-using namespace llvm;
-
+using namespace llvm; 
 #define DEBUG_TYPE "runtimeltl"
 
 namespace {
+
+Optional<std::string> demangle(StringRef ref) {
+  size_t length;
+  int status;
+  char *demangledNameRaw =
+    abi::__cxa_demangle(ref.data(), NULL, &length, &status);
+
+  switch (status) {
+    case 0: {// Success
+      errs() << "Length: " << length << "\n";
+      std::string demangledNameStr(demangledNameRaw);
+      //Optional<std::string> demangledName(std::move(demangledNameStr));
+      free(demangledNameRaw);
+
+      return demangledNameStr;
+    }
+    case -1: {// A memory allocation failure occured
+      errs() << "ERROR " << status << " using abi::__cxa_demangle: memory allocation failure occured\n";
+      return Optional<std::string>();
+    }
+    case -2: {// mangled_name is not a valid name under the C++ ABI mangling rules.
+      return Optional<std::string>();
+    }
+    case -3: {// One of the arguments is invalid.
+      errs() << "ERROR " << status << " using abi::__cxa_demangle: one of the arguments is invalid\n";
+      return Optional<std::string>();
+    }
+  }
+}
 
 struct RuntimeLtl : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
@@ -75,10 +108,19 @@ struct RuntimeLtl : public FunctionPass {
   }
 
   bool runOnFunction(Function &F) override {
+    Optional<std::string> demangledName = demangle(F.getName());
+    if (demangledName.hasValue()) {
+      errs() << "Mangled name: ";
+      errs().write_escaped(F.getName()) << '\n';
+      errs() << "Demangled name: ";
+      errs().write_escaped(demangledName.getValue()) << '\n';
+    }
+
     //TODO: figure out how to pass clang attributes through.
     if (!F.hasFnAttribute("ltl_verify")) {
       return false;
     }
+
 
     // Create IRBuilder
     IRBuilder<> builder(&F.front());
@@ -91,7 +133,7 @@ struct RuntimeLtl : public FunctionPass {
     builder.SetInsertPoint(&F.back().back());
     builder.CreateCall(ExitFn);
 
-    errs() << "Inserting calls in function";
+    errs() << "Inserting calls in function ";
     errs().write_escaped(F.getName()) << '\n';
 
     return true;

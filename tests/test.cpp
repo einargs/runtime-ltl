@@ -2,11 +2,14 @@
 
 #define LTL_VERIFY __attribute__((annotate("ltl_verify")))
 
+using std::cout;
+using std::endl;
+
 LTL_VERIFY void annotate_this() {
   if (true) {
-    std::cout << "Hello world!" << std::endl;
+    cout << "True path." << endl;
   } else {
-    std::cout << "No" << std::endl;
+    cout << "False path." << endl;
   }
 }
 
@@ -14,11 +17,18 @@ class Test {
 private:
   int val;
 public:
-  Test(int val): val(val) {}
+  Test(int val): val(val) {
+    cout << "A test object with value " << val << " has been created." << endl;
+  }
 
   LTL_VERIFY void method() {
-    std::cout << "Hey " << val << std::endl;
+    cout << "Method: value is " << val << endl;
     annotate_this();
+  }
+
+  int method(int n) {
+    int incedVal = n+val;
+    return incedVal;
   }
 };
 
@@ -27,5 +37,6 @@ int main() {
 
   Test test(1);
   test.method();
+  cout << "test.method(2) = " << test.method(2) << endl;
   return 0;
 }
