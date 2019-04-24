@@ -12,33 +12,56 @@
 //===----------------------------------------------------------------------===//
 
 #include <string>
+#include <vector>
+#include <fstream>
 #include <cxxabi.h>
+#include <memory>
 
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/BasicBlock.h"
-#include "llvm/Pass.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Pass.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+
+#include "./ConfigParser.h"
+
 using namespace llvm; 
+
 #define DEBUG_TYPE "runtimeltl"
 
-namespace {
+// For information on defining command line arguments in the LLVM system,
+// see: http://llvm.org/docs/CommandLine.html#quick-start-guide
+// and: http://llvm.org/doxygen/LoopUnrollPass_8cpp_source.html
+cl::opt<std::string> RuntimeLtlConfigFilename("runtime-ltl-config",
+    cl::Required,
+    cl::desc("Specify configuration file for runtime ltl verification system"),
+    cl::value_desc("filename"));
 
+// Call `ExitOnErr` to panic if an `Expected<T>` is an error instead of a value.
+ExitOnError ExitOnErr;
+
+namespace {
+using config::parse;
+using config::InstrumentationTarget;
+
+// Function for demangling LLVM IR names.
+//
+// Will likely be used for checking if a function is an instance of a templated
+// function.
 Optional<std::string> demangle(StringRef ref) {
-  size_t length;
+  size_t length = 0;
   int status;
   char *demangledNameRaw =
     abi::__cxa_demangle(ref.data(), NULL, &length, &status);
 
   switch (status) {
     case 0: {// Success
-      errs() << "Length: " << length << "\n";
       std::string demangledNameStr(demangledNameRaw);
-      //Optional<std::string> demangledName(std::move(demangledNameStr));
       free(demangledNameRaw);
 
       return demangledNameStr;
@@ -61,6 +84,19 @@ struct RuntimeLtl : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
   RuntimeLtl() : FunctionPass(ID) {}
 
+  RuntimeLtl(std::vector<InstrumentationTarget> &&targets)
+    : FunctionPass(ID), targets(std::move(targets)) {}
+
+  //TODO: consider moving these to a lookup table I can hit during the function
+  // pass.
+  //
+  // Doing this would move annotating the functions from an O(m x n) operation
+  // to an O(n) operation.
+  const std::vector<InstrumentationTarget> targets;
+
+  //TODO: these should probably be moved out of here, since I think that there's
+  // only ever one RuntimeLtl object in existence? Check on that--it has
+  // implications on how I deal with the vector of instrumentation targets too.
   Function *EntryFn;
   Function *ExitFn;
 
@@ -70,34 +106,19 @@ struct RuntimeLtl : public FunctionPass {
     ExitFn = dyn_cast<Function>(module.getOrInsertFunction("runtime_ltl_exit_fn", Type::getVoidTy(ctx)));
   }
 
-  // Move annotations from global metadata to attributes on the functions
-  // themselves.
-  // Source code adapted from: http://bholt.org/posts/llvm-quick-tricks.html
-  // retrieved March 4, 2019.
-  void loadAnnotations(Module &module) {
-    auto global_annos = module.getNamedGlobal("llvm.global.annotations");
-
-    if (global_annos) {
-      auto a = cast<ConstantArray>(global_annos->getOperand(0));
-      for (int i=0; i<a->getNumOperands(); i++) {
-        auto e = cast<ConstantStruct>(a->getOperand(i));
-
-        if (Function* fn = dyn_cast<Function>(e->getOperand(0)->getOperand(0))) {
-          auto anno = cast<ConstantDataArray>(cast<GlobalVariable>(e->getOperand(1)->getOperand(0))->getOperand(0))->getAsCString();
-
-          // Log function name
-          errs() << "annotated function ";
-          errs().write_escaped(fn->getName()) << " with attribute " << anno
-            << "\n";
-          // Add annotation
-          fn->addFnAttr(anno);
-        }
+  void loadConfigFile(Module &module) {
+    errs() << "instrumentation targets:" << '\n';
+    for (const InstrumentationTarget &target : targets) {
+      if (Function *fn = module.getFunction(target.mangled_name)) {
+        errs().write_escaped(target.mangled_name) << '\n';
+        fn->addFnAttr("ltl_verify");
       }
     }
+    errs() << '\n';
   }
 
   bool doInitialization(Module &module) {
-    loadAnnotations(module);
+    loadConfigFile(module);
     loadExternalFunctions(module);
 
     if (!EntryFn || !ExitFn) {
@@ -116,7 +137,6 @@ struct RuntimeLtl : public FunctionPass {
       errs().write_escaped(demangledName.getValue()) << '\n';
     }
 
-    //TODO: figure out how to pass clang attributes through.
     if (!F.hasFnAttribute("ltl_verify")) {
       return false;
     }
@@ -143,10 +163,17 @@ struct RuntimeLtl : public FunctionPass {
 }
 
 char RuntimeLtl::ID = 0;
+
+/// This is used not only to register the pass needed to inject code,
+/// but it also is in charge of running the code to parse the configuration
+/// file into a vector of instrumentation targets.
 static void registerRuntimeLtl(const PassManagerBuilder &,
                          legacy::PassManagerBase &PM) {
-  PM.add(new RuntimeLtl());
+  auto targets_ptr = ExitOnErr(parse(RuntimeLtlConfigFilename));
+
+  PM.add(new RuntimeLtl(std::move(*targets_ptr)));
 }
+
 static RegisterStandardPasses
   RegisterMyPass(PassManagerBuilder::EP_EarlyAsPossible,
                  registerRuntimeLtl);

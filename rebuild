@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Rebuild using Cmake
+cmake --build ./build/

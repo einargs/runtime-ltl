@@ -3,9 +3,13 @@
 
 add_llvm_library( RuntimeLtlPass MODULE BUILDTREE_ONLY
   RuntimeLtlPass.cpp
+  ConfigParser.cpp
+  Util.cpp
 
   DEPENDS
   intrinsics_gen
   PLUGIN_TOOL
   opt
   )
+
+target_link_libraries(RuntimeLtlPass libclang)

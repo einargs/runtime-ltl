@@ -6,6 +6,7 @@ project(RuntimeLtlProject)
 set(BUILDING_WITH_NIX $ENV{BUILDING_WITH_NIX})
 
 find_package(LLVM REQUIRED CONFIG)
+find_package(Clang REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(HandleLLVMOptions)

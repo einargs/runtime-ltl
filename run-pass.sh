@@ -84,18 +84,22 @@ fi
 # Echo the path of the `clang` executable being used.
 echo "CLANG is $CLANG"
 
-# Common options for the 
-RUN_CLANG="$CLANG -Xclang -load -Xclang $PASS_SO $RUNTIME_SO -O0"
+# The `-mllvm` option is used to tell Clang to pass the argument after to
+# the underlying LLVM option parsing.
+CONFIG_FILE="$(pwd)/tests/configfile.cpp"
+PASS_CONFIG="-mllvm -runtime-ltl-config -mllvm $CONFIG_FILE"
+# Common options for running clang
+RUN_CLANG="$CLANG -Xclang -load -Xclang $PASS_SO $RUNTIME_SO -O0 $PASS_CONFIG"
 
 IR_TMP=$(mktemp)
 BIN_TMP=$(mktemp)
 # Load the shared object containing the pass into clang and emit the LLVM IR
 # into the output file.
-$RUN_CLANG -emit-llvm -S $TARGET_FILE -o $IR_TMP
+$RUN_CLANG -g -emit-llvm -S $TARGET_FILE -o $IR_TMP
 $RUN_CLANG $TARGET_FILE -o $BIN_TMP
 
 # Print the IR to stdout.
-cat $IR_TMP
+#cat $IR_TMP
 
 # Then execute the binary.
 echo "Running..."
