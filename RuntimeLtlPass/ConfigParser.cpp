@@ -72,23 +72,6 @@ void load_instrumentation_targets(
         if (optional_target.hasValue()) {
           targets->push_back(std::move(*optional_target));
         }
-        /* Some old code showing what you can get out of a cursor.
-         * Leave this in for one commit to save it then take it out.
-        CXModule module = clang_Cursor_getModule(c);
-        CXCursorKind kind = clang_getCursorKind(c);
-        if (kind == CXCursor_FunctionDecl || kind == CXCursor_CXXMethod) {
-          CXType type = clang_getCursorType(c);
-          CXType resultType = clang_getResultType(type);
-
-          cout << "Cursor '" << clang_getCursorSpelling(c) << "' of kind '"
-            << clang_getCursorKindSpelling(clang_getCursorKind(c)) << "'\n"
-            << "Type: " << clang_getTypeSpelling(type) << "\n"
-            << "TypeKind: " << clang_getTypeKindSpelling(type.kind) << "\n"
-            << "ResultType: " << clang_getTypeSpelling(resultType) << "\n"
-            << "ResultTypeKind: " << clang_getTypeKindSpelling(resultType.kind) << "\n";
-
-          cout << "Mangling: " << clang_Cursor_getMangling(c) << "\n\n";
-        }*/
       }
       return CXChildVisit_Recurse;
     },
