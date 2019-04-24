@@ -1,4 +1,0 @@
-#include "some_header.h"
-
-event "void Test::func1(int)"@some a
-
