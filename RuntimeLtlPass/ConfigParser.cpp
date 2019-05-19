@@ -27,22 +27,31 @@ Optional<InstrumentationTarget> target_from_cursor(CXCursor cursor) {
 
   // Get the kind of instrumentation target
   InstrumentationTargetKind kind;
+  std::string str = convertCXString(clang_getCursorSpelling(cursor));
+  
+  if (str == "genericFunction") {
+    cout << "Kind of genericFunction: " << clang_getCursorKindSpelling(cursor_kind) << endl;
+    cout << "genericFunction mangling: " << clang_Cursor_getMangling(cursor) << endl;
+  }
+  
+  cout << "cursor name: " << clang_getCursorSpelling(cursor) << endl;
   if (cursor_kind == CXCursor_CXXMethod) {
     kind = InstrumentationTargetKind::Method;
   } else if (cursor_kind == CXCursor_FunctionDecl) {
+    cout << "function decl: " << clang_getCursorSpelling(cursor) << endl;
     kind = InstrumentationTargetKind::Function;
   } else if (cursor_kind == CXCursor_Constructor) {
     kind = InstrumentationTargetKind::Constructor;
   } else if (cursor_kind == CXCursor_Destructor) {
     kind = InstrumentationTargetKind::Destructor;
+  } else if (cursor_kind == CXCursor_FunctionTemplate) {
+    cout << "FunctionTemplate: " << clang_getCursorSpelling(cursor) << endl;
   } else {
     return Optional<InstrumentationTarget>();
   }
 
   // Get the mangled name
-  CXString cx_mangled_name = clang_Cursor_getMangling(cursor);
-  string mangled_name = clang_getCString(cx_mangled_name);
-  clang_disposeString(cx_mangled_name);
+  string mangled_name = convertCXString(clang_Cursor_getMangling(cursor));
 
   // Create the instrumentation target
   InstrumentationTarget target = {

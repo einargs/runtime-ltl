@@ -23,6 +23,11 @@ else
 fi
 
 
+# Default the PRINT_IR variable to false
+if [ -z "$PRINT_IR" ]; then
+  PRINT_IR = false
+fi
+
 # If `PASS_SO` is an environment variable, don't override it.
 # This allows you to specify a different location for the script to find
 # the plugin at.
@@ -91,29 +96,36 @@ PASS_CONFIG="-mllvm -runtime-ltl-config -mllvm $CONFIG_FILE"
 # Common options for running clang
 RUN_CLANG="$CLANG -Xclang -load -Xclang $PASS_SO $RUNTIME_SO -O0 $PASS_CONFIG"
 
-IR_TMP=$(mktemp)
-BIN_TMP=$(mktemp)
-# Load the shared object containing the pass into clang and emit the LLVM IR
-# into the output file.
-$RUN_CLANG -g -emit-llvm -S $TARGET_FILE -o $IR_TMP
-$RUN_CLANG $TARGET_FILE -o $BIN_TMP
+if [ $PRINT_IR ]; then
+  # Make temp file for holding the IR
+  IR_TMP=$(mktemp)
 
-# Print the IR to stdout.
-#cat $IR_TMP
+  # Load the shared object containing the pass into clang and emit the LLVM IR
+  # into the output file.
+  $RUN_CLANG -emit-llvm -S $TARGET_FILE -o $IR_TMP
 
-# Then execute the binary.
-echo "Running..."
-$BIN_TMP
+  # Print the IR to stdout.
+  cat $IR_TMP
 
-# Copy the IR and binary if desired.
-if [ "$IR_OUT" != "" ]; then
-  echo "Outputing IR to $IR_OUT"
-  cp $IR_TMP $IR_OUT
+  # Copy the IR and binary if desired.
+  if [ "$IR_OUT" != "" ]; then
+    echo "Outputing IR to $IR_OUT"
+    cp $IR_TMP $IR_OUT
+  fi
+  rm $IR_TMP
 fi
-rm $IR_TMP
 
-if [ "$BIN_OUT" != "" ]; then
-  echo "Outputing binary to $BIN_OUT"
-  cp $BIN_TMP $BIN_OUT
+if [ true ]; then
+  BIN_TMP=$(mktemp)
+  $RUN_CLANG $TARGET_FILE -o $BIN_TMP
+
+  # Then execute the binary.
+  echo "Running..."
+  $BIN_TMP
+
+  if [ "$BIN_OUT" != "" ]; then
+    echo "Outputing binary to $BIN_OUT"
+    cp $BIN_TMP $BIN_OUT
+  fi
+  rm $BIN_TMP
 fi
-rm $BIN_TMP
