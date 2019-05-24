@@ -1,0 +1,23 @@
+{
+  "includes": [
+    "tests/no-inline.cpp"
+  ],
+  "events": {
+    "annotate_this": {
+      "specifier": "void annotate_this()",
+      "enabled": true
+    },
+    "construct_test_from_int": {
+      "specifier": "Test::Test(int)",
+      "enabled": false
+    },
+    "test_method": {
+      "specifier": "void Test::method(int, std::string)",
+      "enabled": true
+    },
+    "generic_class_method": {
+      "specifier": "void GenericClass<int>::genericMethod(int)",
+      "enabled": true
+    }
+  }
+}

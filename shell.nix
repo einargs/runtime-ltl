@@ -12,6 +12,7 @@ let
 in mkShell {
   buildInputs = [
     cmake ninja clang libclang llvm spot
+    nlohmann_json
   ];
   
   USING_NIX_SHELL = true;

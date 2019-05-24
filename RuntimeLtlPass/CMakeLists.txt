@@ -5,6 +5,7 @@ add_llvm_library( RuntimeLtlPass MODULE BUILDTREE_ONLY
   RuntimeLtlPass.cpp
   ConfigParser.cpp
   Util.cpp
+  Ast.cpp
 
   DEPENDS
   intrinsics_gen

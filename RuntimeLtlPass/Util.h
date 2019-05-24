@@ -11,6 +11,7 @@ namespace config {
 std::ostream& operator<<(std::ostream& stream, const CXString& str);
 
 std::string convertCXString(const CXString &str);
+
 }
 
 #endif

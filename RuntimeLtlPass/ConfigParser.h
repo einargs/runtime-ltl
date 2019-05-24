@@ -4,8 +4,11 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 #include "llvm/Support/Error.h"
+
+#include "./Ast.h"
 
 namespace config {
 
@@ -18,10 +21,18 @@ enum struct InstrumentationTargetKind {
 
 struct InstrumentationTarget {
   InstrumentationTargetKind kind;
-  std::string mangled_name;
+  std::string event_name;
+  std::string mangled_function_name;
 };
 
-llvm::Expected<std::unique_ptr<std::vector<InstrumentationTarget>>> parse(std::string config_file);
+llvm::Expected<std::vector<InstrumentationTarget>> hydrate(
+    LtlConfig &&config);
+
+llvm::Expected<std::unordered_map<std::string, InstrumentationTarget>> parse(
+    std::string &filename);
+
+std::unordered_map<std::string, InstrumentationTarget>
+  map_by_mangled_names(std::vector<InstrumentationTarget> &&targets);
 
 }
 

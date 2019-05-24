@@ -25,7 +25,9 @@ fi
 
 # Default the PRINT_IR variable to false
 if [ -z "$PRINT_IR" ]; then
-  PRINT_IR = false
+  PRINT_IR=false
+else
+  PRINT_IR=true
 fi
 
 # If `PASS_SO` is an environment variable, don't override it.
@@ -91,12 +93,12 @@ echo "CLANG is $CLANG"
 
 # The `-mllvm` option is used to tell Clang to pass the argument after to
 # the underlying LLVM option parsing.
-CONFIG_FILE="$(pwd)/tests/configfile.cpp"
+CONFIG_FILE="$(pwd)/tests/config.json"
 PASS_CONFIG="-mllvm -runtime-ltl-config -mllvm $CONFIG_FILE"
 # Common options for running clang
 RUN_CLANG="$CLANG -Xclang -load -Xclang $PASS_SO $RUNTIME_SO -O0 $PASS_CONFIG"
 
-if [ $PRINT_IR ]; then
+if $PRINT_IR; then
   # Make temp file for holding the IR
   IR_TMP=$(mktemp)
 

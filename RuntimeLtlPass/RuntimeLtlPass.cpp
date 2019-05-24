@@ -16,6 +16,7 @@
 #include <fstream>
 #include <cxxabi.h>
 #include <memory>
+#include <unordered_map>
 
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
@@ -25,6 +26,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/ADT/None.h"
 #include "llvm/Pass.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
@@ -84,21 +86,26 @@ struct RuntimeLtl : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
   RuntimeLtl() : FunctionPass(ID) {}
 
-  RuntimeLtl(std::vector<InstrumentationTarget> &&targets)
-    : FunctionPass(ID), targets(std::move(targets)) {}
+  RuntimeLtl(std::unordered_map<std::string, InstrumentationTarget> &&targets)
+    : FunctionPass(ID), target_map(std::move(targets)) {}
 
-  //TODO: consider moving these to a lookup table I can hit during the function
-  // pass.
-  //
-  // Doing this would move annotating the functions from an O(m x n) operation
-  // to an O(n) operation.
-  const std::vector<InstrumentationTarget> targets;
+  const std::unordered_map<std::string, InstrumentationTarget> target_map;
 
   //TODO: these should probably be moved out of here, since I think that there's
   // only ever one RuntimeLtl object in existence? Check on that--it has
   // implications on how I deal with the vector of instrumentation targets too.
+  // UPDATE (Fri May 24 2019): I'm not even sure what this todo means.
   Function *EntryFn;
   Function *ExitFn;
+
+  void insertRuntimeCall(
+      IRBuilder<> &builder,
+      Function *callee,
+      const InstrumentationTarget &target) {
+    GlobalVariable *event_name = builder.CreateGlobalString(target.event_name);
+    const std::vector<Value *> args { event_name };
+    builder.CreateCall(callee, args);
+  }
 
   void loadExternalFunctions(Module &module) {
     LLVMContext &ctx = module.getContext();
@@ -106,30 +113,29 @@ struct RuntimeLtl : public FunctionPass {
     ExitFn = dyn_cast<Function>(module.getOrInsertFunction("runtime_ltl_exit_fn", Type::getVoidTy(ctx)));
   }
 
-  void loadConfigFile(Module &module) {
-    errs() << "instrumentation targets:" << '\n';
-    for (const InstrumentationTarget &target : targets) {
-      if (Function *fn = module.getFunction(target.mangled_name)) {
-        errs().write_escaped(target.mangled_name) << '\n';
-        fn->addFnAttr("ltl_verify");
-      }
-    }
-    errs() << '\n';
-  }
-
   bool doInitialization(Module &module) {
-    loadConfigFile(module);
     loadExternalFunctions(module);
 
     if (!EntryFn || !ExitFn) {
       errs() << "Could not find verification functions\n";
     }
 
+    //TODO: figure out what this return false means
     return false;
+  }
+
+  // 
+  const InstrumentationTarget *getInstrumentationTarget(Function &F) {
+    if (0 == target_map.count(F.getName())) {
+      return nullptr;
+    } else {
+      return &target_map.at(F.getName());
+    }
   }
 
   bool runOnFunction(Function &F) override {
     Optional<std::string> demangledName = demangle(F.getName());
+
     if (demangledName.hasValue()) {
       errs() << "Mangled name: ";
       errs().write_escaped(F.getName()) << '\n';
@@ -137,21 +143,22 @@ struct RuntimeLtl : public FunctionPass {
       errs().write_escaped(demangledName.getValue()) << '\n';
     }
 
-    if (!F.hasFnAttribute("ltl_verify")) {
+    const InstrumentationTarget *nullable_target = getInstrumentationTarget(F);
+    if (nullable_target == nullptr) {
       return false;
     }
-
+    const InstrumentationTarget &target = *nullable_target;
 
     // Create IRBuilder
     IRBuilder<> builder(&F.front());
 
     // Move to before the first instruction in the first basic block
     builder.SetInsertPoint(&F.front().front());
-    builder.CreateCall(EntryFn);
+    insertRuntimeCall(builder, EntryFn, target);
 
     // Move to after the last instruction in the last basic block
     builder.SetInsertPoint(&F.back().back());
-    builder.CreateCall(ExitFn);
+    insertRuntimeCall(builder, ExitFn, target);
 
     errs() << "Inserting calls in function ";
     errs().write_escaped(F.getName()) << '\n';
@@ -169,9 +176,9 @@ char RuntimeLtl::ID = 0;
 /// file into a vector of instrumentation targets.
 static void registerRuntimeLtl(const PassManagerBuilder &,
                          legacy::PassManagerBase &PM) {
-  auto targets_ptr = ExitOnErr(parse(RuntimeLtlConfigFilename));
+  auto targets = ExitOnErr(config::parse(RuntimeLtlConfigFilename));
 
-  PM.add(new RuntimeLtl(std::move(*targets_ptr)));
+  PM.add(new RuntimeLtl(std::move(targets)));
 }
 
 static RegisterStandardPasses

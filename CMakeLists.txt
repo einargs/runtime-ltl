@@ -7,6 +7,7 @@ set(BUILDING_WITH_NIX $ENV{BUILDING_WITH_NIX})
 
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED)
+find_package(nlohmann_json 3.5.0 REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(HandleLLVMOptions)
