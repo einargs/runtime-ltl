@@ -10,6 +10,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "llvm/ADT/StringMap.h"
+
 #include "./Ast.h"
 #include "./Util.h" 
 using std::ostream;
@@ -25,6 +27,7 @@ using std::errc;
 using std::unordered_map;
 
 using llvm::Expected;
+using llvm::StringMap;
 using llvm::make_unique;
 using llvm::Optional;
 using llvm::StringError;
@@ -226,9 +229,9 @@ Expected<vector<InstrumentationTarget>> hydrate(LtlConfig &config) {
   return std::move(targets);
 }
 
-unordered_map<string, InstrumentationTarget> map_by_mangled_names(
+StringMap<InstrumentationTarget> map_by_mangled_names(
     vector<InstrumentationTarget> &targets) {
-  unordered_map<string, InstrumentationTarget> target_map;
+  StringMap<InstrumentationTarget> target_map;
 
   for (auto &target : targets) {
     target_map[target.mangled_function_name] = target;
@@ -237,7 +240,7 @@ unordered_map<string, InstrumentationTarget> map_by_mangled_names(
   return target_map;
 }
 
-Expected<unordered_map<string, InstrumentationTarget>> parse(string &filename) {
+Expected<StringMap<InstrumentationTarget>> parse(string &filename) {
   ifstream input_file;
   json json_obj;
 

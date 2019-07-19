@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "llvm/Support/Error.h"
+#include "llvm/ADT/StringMap.h"
 
 #include "./Ast.h"
 
@@ -28,10 +29,10 @@ struct InstrumentationTarget {
 llvm::Expected<std::vector<InstrumentationTarget>> hydrate(
     LtlConfig &&config);
 
-llvm::Expected<std::unordered_map<std::string, InstrumentationTarget>> parse(
+llvm::Expected<llvm::StringMap<InstrumentationTarget>> parse(
     std::string &filename);
 
-std::unordered_map<std::string, InstrumentationTarget>
+llvm::StringMap<InstrumentationTarget>
   map_by_mangled_names(std::vector<InstrumentationTarget> &&targets);
 
 }

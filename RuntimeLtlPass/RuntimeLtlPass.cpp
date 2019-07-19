@@ -27,6 +27,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/ADT/None.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/Pass.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
@@ -86,10 +87,10 @@ struct RuntimeLtl : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
   RuntimeLtl() : FunctionPass(ID) {}
 
-  RuntimeLtl(std::unordered_map<std::string, InstrumentationTarget> &&targets)
+  RuntimeLtl(StringMap<InstrumentationTarget> &&targets)
     : FunctionPass(ID), target_map(std::move(targets)) {}
 
-  const std::unordered_map<std::string, InstrumentationTarget> target_map;
+  const StringMap<InstrumentationTarget> target_map;
 
   //TODO: these should probably be moved out of here, since I think that there's
   // only ever one RuntimeLtl object in existence? Check on that--it has
@@ -125,11 +126,13 @@ struct RuntimeLtl : public FunctionPass {
   }
 
   // 
-  const InstrumentationTarget *getInstrumentationTarget(Function &F) {
-    if (0 == target_map.count(F.getName())) {
-      return nullptr;
+  Optional<InstrumentationTarget> getInstrumentationTarget(Function &F) const {
+    auto iter = target_map.find(F.getName());
+    if (iter == target_map.end()) {
+      return Optional<InstrumentationTarget>();
     } else {
-      return &target_map.at(F.getName());
+      const InstrumentationTarget target = iter->getValue();
+      return Optional<InstrumentationTarget>(std::move(target));
     }
   }
 
@@ -143,11 +146,11 @@ struct RuntimeLtl : public FunctionPass {
       errs().write_escaped(demangledName.getValue()) << '\n';
     }
 
-    const InstrumentationTarget *nullable_target = getInstrumentationTarget(F);
-    if (nullable_target == nullptr) {
+    auto optional_target = getInstrumentationTarget(F);
+    if (!optional_target.hasValue()) {
       return false;
     }
-    const InstrumentationTarget &target = *nullable_target;
+    const InstrumentationTarget &target = *optional_target;
 
     // Create IRBuilder
     IRBuilder<> builder(&F.front());
